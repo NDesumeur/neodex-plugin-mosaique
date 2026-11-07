@@ -1,0 +1,22 @@
+{
+  "id": "neodex.mosaique",
+  "name": "Mosaïque",
+  "version": "1.0.0",
+  "author": "NDesumeur",
+  "description": "Des grilles à noircir d'après les nombres des lignes et des colonnes. Chaque grille finie révèle une image en pixel art.",
+  "icon": "icon.png",
+  "entry": "index.js",
+  "view": "mosaique",
+  "neobase": ">=4.0.0",
+  "type": "app",
+  "category": "Jeux",
+  "syncMode": "progression",
+  "syncInfo": "Grilles résolues et temps.",
+  "mobile": false,
+  "system": false,
+  "dependencies": {},
+  "sdk": "2.1.0",
+  "permissions": [
+    "storage"
+  ]
+}
