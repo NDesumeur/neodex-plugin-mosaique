@@ -3,7 +3,7 @@
   "name": "Mosaïque",
   "version": "1.0.0",
   "author": "NDesumeur",
-  "description": "Des grilles à noircir d'après les nombres des lignes et des colonnes. Chaque grille finie révèle une image en pixel art.",
+  "description": "Grilles logiques de 10 × 10 : les nombres de chaque ligne et colonne donnent les blocs de cases noires, à toi de déduire lesquelles noircir. Clic pour noircir, clic droit pour une croix, glisser pour plusieurs cases ; les lignes justes se grisent. 12 grilles qui révèlent une image en couleur, des grilles au hasard sans fin, chronomètre et temps gardés.",
   "icon": "icon.png",
   "entry": "index.js",
   "view": "mosaique",
