@@ -1,7 +1,7 @@
 {
   "id": "neodex.mosaique",
   "name": "Mosaïque",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "NDesumeur",
   "description": "Grilles logiques de 10 × 10 : les nombres de chaque ligne et colonne donnent les blocs de cases noires, à toi de déduire lesquelles noircir. Clic pour noircir, clic droit pour une croix, glisser pour plusieurs cases ; les lignes justes se grisent. 12 grilles qui révèlent une image en couleur, des grilles au hasard sans fin, chronomètre et temps gardés.",
   "icon": "icon.png",
