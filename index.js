@@ -5,19 +5,22 @@ const HTML = `<div class="appWrap wide">
   <div class="gMain"><div class="gameBox"><canvas id="gc" width="288" height="216"></canvas></div>
     <div class="gSide">
       <div class="sysCard"><b>RECORDS</b><div class="gStats" id="gStats"></div></div>
-      <div class="row"><button class="btn main" id="gNew">NOUVELLE PARTIE</button></div>
+      <div class="row"><button class="btn main" id="gNew">NOUVELLE PARTIE</button><button class="btn" id="gFs">PLEIN ÉCRAN</button></div>
+      <label class="row">Taille <select id="mqSize" class="gSel"><option value="5">5 × 5 · débutant</option><option value="10">10 × 10</option><option value="15">15 × 15</option><option value="20">20 × 20</option></select></label>
       <div class="row"><select id="mqSel" class="f"></select></div>
       <div class="hint">Les nombres donnent les blocs de cases noires de chaque ligne et colonne, dans l'ordre. « 3 1 » veut dire : un bloc de 3 cases noires, au moins une case blanche, puis un bloc de 1. Chaque nombre a sa petite étiquette.</div><div class="hint">La croix (clic droit) marque une case sûre d'être blanche. Une ligne juste se grise.</div>
     </div></div>
 </div>`;
 const CSS = `.gMain{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
-.gameBox{display:grid;place-items:center;padding:10px;background:#05010b;flex:2;min-width:320px;position:relative}
+.gameBox{display:grid;place-items:center;padding:10px;background:#05010b;flex:2 1 560px;min-width:min(100%,560px);position:relative}
 .gameBox canvas{width:100%;image-rendering:pixelated;cursor:var(--cp,pointer);touch-action:none}
 .gSide{display:flex;flex-direction:column;gap:14px;flex:1;min-width:250px;max-width:420px}
 .gSide .sysCard{display:flex;flex-direction:column}
 .gStats{display:grid;grid-template-columns:1fr auto;gap:4px 14px}
 .gStats b{text-align:right}
-.gameBox canvas{max-width:640px;aspect-ratio:288/216}`;
+.gameBox canvas{width:min(100%,max(320px,calc((100vh - 190px) * 4 / 3)));height:auto;aspect-ratio:4/3}
+.gameBox:fullscreen{padding:0}
+.gameBox:fullscreen canvas{width:min(100vw,calc(100vh * 4 / 3))}`;
 /* ---------- l'habillage pixel art, dessiné à la main : police bitmap (accents compris), cadres, boutons, icônes ----------
    Tout est en pixels pleins, agrandis par 2 sans lissage : aucun dégradé, aucune ombre floue. */
 const PXK = (() => {
@@ -322,7 +325,7 @@ const clock = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStar
 // petits outils communs aux jeux : une toile pré-dessinée, la position du pointeur dans le canevas, un bip
 const cnv = (w, h, fn) => { const c = el('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; fn(g); return c; };
 const spr = (rows, pal) => cnv(Math.max(...rows.map(r => r.length)), rows.length, g => sprite(g, rows, 0, 0, pal));
-const W = 288, H = 216, cv = $('gc'), g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
+let W = 288, H = 216; const cv = $('gc'), g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
 const cpos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H]; };
 let actx = null;
 const beep = (f, d = .1, type = 'square', slide = 0, vol = .08) => { try { actx ??= new AudioContext(); const o = actx.createOscillator(), gn = actx.createGain(), t = actx.currentTime; o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + d); gn.gain.setValueAtTime(vol, t); gn.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(gn).connect(actx.destination); o.start(t); o.stop(t + d + .02); } catch {} };
@@ -345,48 +348,74 @@ const MQ_PUZ = [
   ['Un poisson', ['..........', '....bbb...', '..bbbbbb..', '.bb.bbbbbb', 'bbbbbbbbbb', 'bbbbbbbbbb', '.bbbbbbbbb', '..bbbbbb..', '....bbb...', '..........']],
   ['Une note', ['...vvvvvvv', '...vvvvvvv', '...v.....v', '...v.....v', '...v.....v', '...v.....v', '.vvv...vvv', 'vvvv..vvvv', 'vvvv..vvvv', '.vv....vv.']],
 ];
-const mqs = gstore('mosaique', {solved: {}, cur: 0, games: 0}); mqs.rand ??= 0;
-function mqRandom() {  // une image tirée au hasard : une forme symétrique lissée, d'une seule couleur, avec au moins une case par ligne
+// les autres tailles : 5 × 5 pour débuter, 15 × 15 et 20 × 20 pour les grandes images
+const MQ_SETS = {10: MQ_PUZ,
+  5: [['Un cœur', ['.r.r.', 'rrrrr', 'rrrrr', '.rrr.', '..r..']], ['Une flèche', ['..y..', '.yyy.', 'y.y.y', '..y..', '..y..']], ['Un sourire', ['.y.y.', '.y.y.', '.....', 'y...y', '.yyy.']],
+    ['Un sapin', ['..g..', '.ggg.', 'ggggg', '..d..', '..d..']], ['Une maison', ['..r..', '.rrr.', 'rrrrr', '.cdc.', '.cdc.']], ['Un plus', ['..g..', '..g..', 'ggggg', '..g..', '..g..']]],
+  15: [['Un chat', ['.o...........o.', '.oo.........oo.', '.ooo.......ooo.', '.ooooooooooooo.', 'ooooooooooooooo', 'ooo..ooooo..ooo', 'ooo..ooooo..ooo', 'ooooooooooooooo', 'oooooooppoooooo', 'ooooo.ooo.ooooo', '.oooooo.oooooo.', '..ooooooooooo..', '...ooooooooo...', '.....ooooo.....', '...............']],
+    ['Un voilier', ['.......w.......', '.......ww......', '.......www.....', '.......wwww....', '.......wwwww...', '.......wwwwww..', '.......k.......', '.......k.......', 'rrrrrrrrrrrrrrr', '.rrrrrrrrrrrrr.', '..rrrrrrrrrrr..', '...rrrrrrrrr...', '...............', 'b.bb.bb.bb.bb.b', 'bbbbbbbbbbbbbbb']]],
+  20: [['Un champignon', ['......rrrrrrrr......', '....rrrrrrrrrrrr....', '...rrwwrrrrrrwwrr...', '..rrwwwwrrrrwwwwrr..', '.rrrwwwwrrrrwwwwrrr.', '.rrrrwwrrrrrrwwrrrr.', 'rrrrrrrrwwwwrrrrrrrr', 'rrwwrrrwwwwwwrrrwwrr', 'rwwwwrrrwwwwrrrwwwwr', 'rwwwwrrrrrrrrrrwwwwr',
+      'rrwwrrrrrrrrrrrrwwrr', '.rrrrrrrrrrrrrrrrrr.', '...rrrrrrrrrrrrrr...', '.....ssssssssss.....', '.....ss.ssss.ss.....', '.....ss.ssss.ss.....', '.....ssssssssss.....', '.....ssssssssss.....', '......ssssssss......', '....................']],
+    ['Une fusée', ['.........rr.........', '........rrrr........', '.......rrrrrr.......', '.......cccccc.......', '......cccccccc......', '......ccbbbbcc......', '......ccbbbbcc......', '......cccccccc......', '......cccccccc......', '......cccccccc......',
+      '.....rccccccccr.....', '....rrccccccccrr....', '...rrrccccccccrrr...', '...rrrccccccccrrr...', '...rr.cccccccc.rr...', '.......oooooo.......', '........oooo........', '.........yy.........', '........y..y........', '.........yy.........']]]};
+const mqs = gstore('mosaique', {solved: {}, cur: 0, games: 0}); mqs.rand ??= 0; mqs.size ??= 10; mqs.curN ??= {};
+const mqKey = (n, i) => n === 10 ? String(i) : n + ':' + i;  // les records des grilles 10 × 10 gardent leur ancienne clé
+function mqRandom(N = 10) {  // une image tirée au hasard : une forme symétrique lissée, d'une seule couleur, avec au moins une case par ligne
+  const hw = Math.ceil(N / 2), mir = x => x < hw ? x : N - 1 - x;  // la moitié gauche, recopiée en miroir (la colonne du milieu une seule fois si N est impair)
   for (;;) {
-    let gr = Array.from({length: 10}, () => Array.from({length: 5}, () => Math.random() < .55));
-    for (let pass = 0; pass < 2; pass++) gr = gr.map((r, y) => r.map((v, x) => { let n = 0; for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if ((i || j) && gr[y + j]?.[x + i < 5 ? x + i : 9 - x - i]) n++; return n >= 5 ? true : n <= 2 ? false : v; }));
-    const full = gr.map(r => [...r, ...[...r].reverse()]), fill = full.flat().filter(Boolean).length;
-    if (fill < 35 || fill > 75 || full.some(r => !r.some(Boolean))) continue;
+    let gr = Array.from({length: N}, () => Array.from({length: hw}, () => Math.random() < .55));
+    for (let pass = 0; pass < 2; pass++) gr = gr.map((r, y) => r.map((v, x) => { let n = 0; for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if ((i || j) && x + i >= 0 && x + i < N && gr[y + j]?.[mir(x + i)]) n++; return n >= 5 ? true : n <= 2 ? false : v; }));
+    const full = gr.map(r => Array.from({length: N}, (_, x) => r[mir(x)])), fill = full.flat().filter(Boolean).length;
+    if (fill < N * N * .35 || fill > N * N * .75 || full.some(r => !r.some(Boolean))) continue;
     const c = 'rbgovpyd'[Math.floor(Math.random() * 8)]; return full.map(r => r.map(v => v ? c : '.').join(''));
   }
 }
 const runs = line => { const out = []; let n = 0; for (const c of line) { if (c) n++; else if (n) { out.push(n); n = 0; } } if (n) out.push(n); return out.length ? out : [0]; };
-const MQ = {N: 10, C: 14, X: 116, Y: 64};
+const MQ_CANVAS = {5: [288, 216], 10: [288, 216], 15: [400, 300], 20: [512, 384]};
+function mqLay(N, rows, cols) {  // la place de la grille : les plus grandes cases qui laissent la place aux nombres, sans toucher le titre en haut à gauche
+  const [cw, ch] = MQ_CANVAS[N], LW = Math.max(...rows.map(r => r.length)) * 11 + 10, TH = Math.max(...cols.map(c => c.length)) * 11 + 8;
+  for (let C = Math.min(26, Math.floor((cw - 24 - LW) / N)); C >= 11; C--) {
+    let X = Math.round(12 + (cw - 24 - LW - N * C) / 2) + LW; const Y = Math.round(12 + (ch - 30 - TH - N * C) / 2) + TH;
+    if (Y + N * C > ch - 14 || Y - TH < 10) continue;
+    if (Y - TH < 44 && X < 116) X = 116;
+    if (X + N * C <= cw - 12) return {N, C, X, Y, LW, TH, cw, ch};
+  }
+  return {N, C: 11, X: LW + 12, Y: TH + 12, LW, TH, cw, ch};
+}
+const mqBgs = {};
 let mq = null;
-function mqNew(i = mqs.cur) {
-  if (i >= 0) mqs.cur = i; saveGames(); const [name, img] = i < 0 ? ['Une mosaïque au hasard', mqRandom()] : MQ_PUZ[i], sol = img.map(r => [...r].map(c => c !== '.'));
-  mq = Object.assign(mq || {tick: 0, raf: 0}, {mode: 'play', i, name, img, sol, cells: sol.map(r => r.map(() => 0)), rows: sol.map(runs), cols: sol[0].map((_, x) => runs(sol.map(r => r[x]))), t0: Date.now(), time: 0, hover: null, drag: null, won: 0});
+function mqNew(i = mqs.size === 10 ? mqs.cur : mqs.curN[mqs.size] ?? 0, N = mqs.size) {
+  const set = MQ_SETS[N]; if (i >= set.length) i = 0;
+  if (i >= 0) { if (N === 10) mqs.cur = i; else mqs.curN[N] = i; } saveGames();
+  const [name, img] = i < 0 ? ['Une mosaïque au hasard', mqRandom(N)] : set[i], sol = img.map(r => [...r].map(c => c !== '.')), rows = sol.map(runs), cols = sol[0].map((_, x) => runs(sol.map(r => r[x])));
+  const L = mqLay(N, rows, cols); [W, H] = [L.cw, L.ch]; if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; g.imageSmoothingEnabled = false; }
+  mq = Object.assign(mq || {tick: 0, raf: 0}, {mode: 'play', i, N, L, name, img, sol, cells: sol.map(r => r.map(() => 0)), rows, cols, t0: Date.now(), time: 0, hover: null, drag: null, won: 0});
   mqInfo();
 }
-const mqCell = (x, y) => { const cx = Math.floor((x - MQ.X) / MQ.C), cy = Math.floor((y - MQ.Y) / MQ.C); return cx >= 0 && cy >= 0 && cx < MQ.N && cy < MQ.N ? [cx, cy] : null; };
+const mqCell = (x, y) => { const {X, Y, C, N} = mq.L, cx = Math.floor((x - X) / C), cy = Math.floor((y - Y) / C); return cx >= 0 && cy >= 0 && cx < N && cy < N ? [cx, cy] : null; };
 const mqSolved = () => mq.cells.every((r, y) => runs(r.map(v => v === 1)).join() === mq.rows[y].join()) && mq.cols.every((c, x) => runs(mq.cells.map(r => r[x] === 1)).join() === c.join());
 function mqSet(cx, cy) {
   if (mq.cells[cy][cx] === mq.drag.to) return; mq.cells[cy][cx] = mq.drag.to; beep(mq.drag.to === 1 ? 660 : mq.drag.to === 2 ? 330 : 220, .04, 'square', 0, .04);
-  if (mqSolved()) { mq.mode = 'won'; mq.time = Math.round((Date.now() - mq.t0) / 1000); mq.wonAt = mq.tick; if (mq.i < 0) { mq.img = mq.img.map((r, y) => [...r].map((c, x) => mq.cells[y][x] === 1 ? r.replace(/\./g, '') [0] : '.').join('')); mqs.rand++; } else { const b = mqs.solved[mq.i]; if (!b || mq.time < b) mqs.solved[mq.i] = mq.time; } mqs.games++; saveGames(); mqInfo(); [523, 659, 784, 1047].forEach((f, k) => setTimeout(() => beep(f, .15, 'triangle'), k * 110)); }
+  if (mqSolved()) { mq.mode = 'won'; mq.time = Math.round((Date.now() - mq.t0) / 1000); mq.wonAt = mq.tick; if (mq.i < 0) { mq.img = mq.img.map((r, y) => [...r].map((c, x) => mq.cells[y][x] === 1 ? r.replace(/\./g, '') [0] : '.').join('')); mqs.rand++; } else { const k = mqKey(mq.N, mq.i), b = mqs.solved[k]; if (!b || mq.time < b) mqs.solved[k] = mq.time; } mqs.games++; saveGames(); mqInfo(); [523, 659, 784, 1047].forEach((f, k) => setTimeout(() => beep(f, .15, 'triangle'), k * 110)); }
 }
-const MQ_BG = cnv(W, H, b => {  // un établi de bois et une feuille quadrillée
+const mqBg = () => mqBgs[W] ??= cnv(W, H, b => {  // un établi de bois et une feuille quadrillée
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const n = (x * 3 + Math.floor(y / 6) * 17) % 23; px(b, y % 6 === 0 ? '#3e2016' : n < 2 ? '#5a3420' : '#6a3e26', x, y); }
   px(b, '#05010b', 8, 8, W - 16, H - 16); px(b, '#f3e8d0', 9, 9, W - 18, H - 18); px(b, '#d9c8a8', 9, H - 11, W - 18, 2);
   for (let y = 12; y < H - 12; y += 4) for (let x = 12; x < W - 12; x += 4) px(b, '#e6d8bc', x, y);
 });
 function mqDraw() {
-  g.drawImage(MQ_BG, 0, 0); if (mq.mode === 'won') mq.won = mq.tick - mq.wonAt;
-  const {N, C, X, Y} = MQ, hv = mq.mode === 'play' ? mq.hover : null;
-  if (hv) { px(g, '#ffe9a8', X - 100, Y + hv[1] * C, 100 + N * C, C); px(g, '#ffe9a8', X + hv[0] * C, Y - 60, C, 60 + N * C); }
+  g.drawImage(mqBg(), 0, 0); if (mq.mode === 'won') mq.won = mq.tick - mq.wonAt;
+  const {N, C, X, Y, LW, TH} = mq.L, hv = mq.mode === 'play' ? mq.hover : null;
+  if (hv) { px(g, '#ffe9a8', X - LW, Y + hv[1] * C, LW + N * C, C); px(g, '#ffe9a8', X + hv[0] * C, Y - TH, C, TH + N * C); }
   // les nombres : en haut pour les colonnes, à gauche pour les lignes (grisés quand la ligne est juste)
   const done = (line, clue) => runs(line.map(v => v === 1)).join() === clue.join();
   const tag = (n, x, y, ok) => { const w = n > 9 ? 12 : 9, l = n > 9 ? x - 7 : x - 4; px(g, ok ? '#e6d8bc' : '#e8dcc0', l, y - 7, w, 9); px(g, ok ? '#d9c8a8' : '#b8a888', l, y + 2, w, 1); pxFont(g, String(n), x + 1, y, ok ? '#a89878' : '#2a2040', 6, 'center'); };
   mq.cols.forEach((c, x) => { const ok = done(mq.cells.map(r => r[x]), c); c.forEach((n, k) => tag(n, X + x * C + C / 2 - 1, Y - 4 - (c.length - 1 - k) * 11, ok)); });
-  mq.rows.forEach((r, y) => { const ok = done(mq.cells[y], r); r.forEach((n, k) => tag(n, X - 9 - (r.length - 1 - k) * 11, Y + y * C + 10, ok)); });
+  mq.rows.forEach((r, y) => { const ok = done(mq.cells[y], r); r.forEach((n, k) => tag(n, X - 9 - (r.length - 1 - k) * 11, Y + y * C + Math.round(C / 2) + 4, ok)); });
   // la grille : cases noircies à l'encre, croix rouges, traits plus épais toutes les 5 cases
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
     const v = mq.cells[y][x], cx = X + x * C, cy = Y + y * C;
-    if (mq.mode === 'won' && mq.won > (x + y) * 2) { const c = MQ_PAL[mq.img[y][x]]; px(g, c || '#f3e8d0', cx, cy, C, C); if (c) { px(g, '#ffffff', cx, cy, C, 1); px(g, 'rgba(0,0,0,.25)', cx, cy + C - 1, C, 1); } continue; }
+    if (mq.mode === 'won' && mq.won > (x + y) * 40 / N) { const c = MQ_PAL[mq.img[y][x]]; px(g, c || '#f3e8d0', cx, cy, C, C); if (c) { px(g, '#ffffff', cx, cy, C, 1); px(g, 'rgba(0,0,0,.25)', cx, cy + C - 1, C, 1); } continue; }
     px(g, v === 1 ? '#2a2040' : '#fbf4e4', cx, cy, C, C);
     if (v === 1) { px(g, '#4a3a6a', cx + 1, cy + 1, C - 2, 1); px(g, '#4a3a6a', cx + 1, cy + 1, 1, C - 2); }
     if (v === 2) for (let k = 3; k < C - 3; k++) { px(g, '#d8484a', cx + k, cy + k); px(g, '#d8484a', cx + C - 1 - k, cy + k); }
@@ -394,28 +423,46 @@ function mqDraw() {
   if (mq.mode !== 'won' || mq.won < 40) {
     for (let k = 0; k <= N; k++) { const th = k % 5 === 0 ? 2 : 1, c = k % 5 === 0 ? '#2a2040' : '#b8a888'; px(g, c, X + k * C - (th > 1 ? 1 : 0), Y, th, N * C); px(g, c, X, Y + k * C - (th > 1 ? 1 : 0), N * C, th); }
   }
-  pxFont(g, mq.mode === 'won' ? mq.name.toUpperCase() : mq.i < 0 ? 'AU HASARD' : 'GRILLE ' + (mq.i + 1) + ' / ' + MQ_PUZ.length, 18, 22, '#2a2040', 8);
+  pxFont(g, mq.mode === 'won' ? mq.name.toUpperCase() : (mq.i < 0 ? 'AU HASARD' : 'GRILLE ' + (mq.i + 1) + ' / ' + MQ_SETS[N].length), 18, 22, '#2a2040', 8); pxFont(g, N + ' × ' + N, 18, 48, '#8a7aaa', 8);
   pxFont(g, clock(mq.mode === 'won' ? mq.time : (Date.now() - mq.t0) / 1000), 18, 36, '#6a5a8a', 8);
-  if (mq.mode === 'won' && mq.won > 50) gameText(g, W, [['BRAVO !', '#ffd84a', 12], [mq.name + ' en ' + clock(mq.time), '#ffffff'], [mq.i < 0 ? 'Clic : une autre au hasard' : mq.i < MQ_PUZ.length - 1 ? 'Clic : grille suivante' : 'Toutes les grilles sont faites !', '#c8b8f0']], 196);
+  if (mq.mode === 'won' && mq.won > 50) gameText(g, W, [['BRAVO !', '#ffd84a', 12], [mq.name + ' en ' + clock(mq.time), '#ffffff'], [mq.i < 0 ? 'Clic : une autre au hasard' : mq.i < MQ_SETS[N].length - 1 ? 'Clic : grille suivante' : 'Toutes les grilles de cette taille sont faites !', '#c8b8f0']], H - 36);
 }
 cv.oncontextmenu = e => e.preventDefault();
 cv.onpointerdown = e => {
   e.preventDefault(); if (!mq) return;
-  if (mq.mode === 'won') { if (mq.won > 50) mqNew(mq.i < 0 ? -1 : (mq.i + 1) % MQ_PUZ.length); return; }
+  if (mq.mode === 'won') { if (mq.won > 50) mqNew(mq.i < 0 ? -1 : (mq.i + 1) % MQ_SETS[mq.N].length); return; }
   const c = mqCell(...cpos(e)); if (!c) return; const v = mq.cells[c[1]][c[0]], right = e.button === 2 || e.shiftKey;
-  mq.drag = {to: right ? (v === 2 ? 0 : 2) : (v === 1 ? 0 : 1)}; cv.setPointerCapture(e.pointerId); mqSet(...c);
+  mq.drag = {to: right ? (v === 2 ? 0 : 2) : (v === 1 ? 0 : 1)}; try { cv.setPointerCapture(e.pointerId); } catch {} mqSet(...c);
 };
 cv.onpointermove = e => { if (!mq) return; const c = mqCell(...cpos(e)); mq.hover = c; if (mq.drag && c && mq.mode === 'play') mqSet(...c); };
 cv.onpointerup = () => { if (mq) mq.drag = null; };
 cv.onpointerleave = () => { if (mq) mq.hover = null; };
 function mqInfo() {
-  const n = Object.keys(mqs.solved).length;
-  showStats([['Grilles résolues', n + ' / ' + MQ_PUZ.length], ['Au hasard', mqs.rand], ['Temps sur celle-ci', mqs.solved[mq.i] ? clock(mqs.solved[mq.i]) : '-'], ['Parties gagnées', mqs.games]]);
+  const N = mq.N, set = MQ_SETS[N], total = Object.values(MQ_SETS).reduce((a, s) => a + s.length, 0), n = Object.keys(mqs.solved).length, t = mqs.solved[mqKey(N, mq.i)];
+  showStats([['Grilles résolues', n + ' / ' + total], ['Au hasard', mqs.rand], ['Temps sur celle-ci', t ? clock(t) : '-'], ['Parties gagnées', mqs.games]]);
   const rnd = el('option', '', 'Au hasard (nouvelle à chaque fois)'); rnd.value = -1;
-  $('mqSel').replaceChildren(rnd, ...MQ_PUZ.map(([name], i) => { const o = el('option', '', 'Grille ' + (i + 1) + (mqs.solved[i] ? ' · ' + name + ' ✓' : '')); o.value = i; return o; })); $('mqSel').value = mq.i;
+  $('mqSel').replaceChildren(rnd, ...set.map(([name], i) => { const o = el('option', '', 'Grille ' + (i + 1) + (mqs.solved[mqKey(N, i)] ? ' · ' + name + ' ✓' : '')); o.value = i; return o; })); $('mqSel').value = mq.i; $('mqSize').value = N;
 }
 $('mqSel').onchange = () => { mqNew(+$('mqSel').value); $('mqSel').blur(); };
 $('gNew').onclick = () => { mqNew(mq.i); $('gNew').blur(); };
+$('mqSize').onchange = () => { mqs.size = +$('mqSize').value; mqNew(); $('mqSize').blur(); };
+$('gFs').onclick = () => { $('gFs').blur(); try { if (document.fullscreenElement) document.exitFullscreen(); else cv.parentElement.requestFullscreen?.().catch(() => {}); } catch {} };
+function mqCheck() {  // vérification : chaque grille a la bonne taille, et pour chaque taille (grilles faites main et 8 au hasard) les nombres et la grille tiennent dans la feuille sans toucher le titre
+  const bad = [];
+  for (const [n, set] of Object.entries(MQ_SETS)) {
+    const N = +n, imgs = [...set.map(s => s[1]), ...Array.from({length: 8}, () => mqRandom(N))];
+    for (const img of imgs) {
+      if (img.length !== N || img.some(r => r.length !== N)) { bad.push('taille ' + N); continue; }
+      const sol = img.map(r => [...r].map(c => c !== '.')), rows = sol.map(runs), cols = sol[0].map((_, x) => runs(sol.map(r => r[x]))), L = mqLay(N, rows, cols);
+      if (L.X - L.LW < 10 || L.Y - L.TH < 10 || L.X + N * L.C > L.cw - 10 || L.Y + N * L.C > L.ch - 12) bad.push('dehors ' + N);
+      if (L.C < 11) bad.push('cases trop petites ' + N);
+      if (L.Y - L.TH < 44 && L.X < 116) bad.push('titre ' + N);
+    }
+  }
+  return bad.length ? [...new Set(bad)].join(', ') : 'ok';
+}
+console.assert(mqCheck() === 'ok', 'mosaïque', mqCheck());
+cv.__mq = {st: () => mq, check: mqCheck, size: n => { $('mqSize').value = n; $('mqSize').dispatchEvent(new Event('change')); }, solve: () => { mq.cells = mq.sol.map(r => r.map(v => v ? 1 : 0)); const [y, x] = [0, mq.sol[0].findIndex(Boolean)]; mq.cells[y][x] = 0; mq.drag = {to: 1}; mqSet(x, y); mq.drag = null; }};
 { const rs = Array.from({length: 20}, mqRandom); console.assert(MQ_PUZ.every(([, r]) => r.length === 10 && r.every(l => l.length === 10)) && rs.every(r => r.length === 10 && r.every(l => l.length === 10 && l.includes(l.replace(/\./g, '')[0]) && l === [...l].reverse().join(''))) && runs([1, 1, 0, 1]).join() === '2,1' && runs([0, 0]).join() === '0', 'mosaïque'); }
 ctx.onOpen(() => { if (!mq) mqNew(); gameLoop(mq, 'mosaique', () => {}, mqDraw); mqInfo(); });
 
