@@ -1,9 +1,9 @@
 {
   "pluginId": "neodex.mosaique",
   "repo": "NDesumeur/neodex-plugin-mosaique",
-  "version": "1.0.1",
-  "sha256": "21f0c0c114d0a7b0ed9aa01229831a4ef36a9a470645b1e09af88c400fe7c145",
-  "approvedAt": "2026-11-08T12:10:48.620Z",
+  "version": "1.1.0",
+  "sha256": "767ec274415a1f216d9535072d53d7ac3eaac5656b558363311882c5644b14e3",
+  "approvedAt": "2026-11-16T04:14:37.356Z",
   "neobase": ">=4.0.0",
-  "signature": "AmbJtwQFwC46AuITb6fv3Z3GurAz6jLGcRyGxVm/l+5HgWSwPID3Ym1sJcqXcqRZ3c2qw0lvAxhjwCJClhjJCA=="
+  "signature": "c6NozVSftL6U1Poykq21Dvqjy/rwvoBJNATCgSQdmrjwkIyBGp82SwtrlM0G16MunFF6B5rfO6d0wr1KuZq3DA=="
 }
