@@ -20,7 +20,6 @@
  "Escape": "Escape",
  "GRILLE": "GRID",
  "Grille": "Grid",
- "Grilles logiques à noircir, en 5 × 5 pour débuter, 10 × 10, 15 × 15 et 20 × 20 : les nombres de chaque ligne et colonne donnent les blocs de cases noires, à toi de déduire lesquelles noircir. Clic pour noircir, clic droit pour une croix, glisser pour plusieurs cases ; les lignes justes se grisent. 22 grilles qui révèlent une image en couleur, des grilles au hasard sans fin dans chaque taille, chronomètre et temps gardés, plein écran et jeu à la taille de l'écran.": "Logic grids to fill in, in 5 × 5 for beginners, 10 × 10, 15 × 15 and 20 × 20: the numbers of each row and column give the blocks of black cells, it's up to you to work out which to fill. Click to fill, right-click for a cross, drag for several cells; correct lines turn grey. 22 grids that reveal a colour picture, endless random grids in every size, a timer and saved times, full screen and a game that fits the screen.",
  "Grilles résolues": "Solved grids",
  "Ia": "Ia",
  "Ic": "Ic",
@@ -87,5 +86,10 @@
  "Un plus": "A plus",
  "Un voilier": "A sailboat",
  "Une fusée": "A rocket",
- "Rien n'est synchronisé : tes records restent sur cet appareil.": "Nothing is synced: your records stay on this device."
+ "Rien n'est synchronisé : tes records restent sur cet appareil.": "Nothing is synced: your records stay on this device.",
+ "ALBUM": "ALBUM",
+ "Au hasard ·": "Random ·",
+ "hasard": "random",
+ "grille": "grid",
+ "Grilles logiques à noircir, en 5 × 5 pour débuter, 10 × 10, 15 × 15 et 20 × 20 : les nombres de chaque ligne et colonne donnent les blocs de cases noires, à toi de déduire lesquelles noircir. Clic pour noircir, clic droit pour une croix, glisser pour plusieurs cases ; les lignes justes se grisent. 22 grilles qui révèlent une image en couleur, des grilles au hasard sans fin dans chaque taille, chronomètre et temps gardés, plein écran et jeu à la taille de l'écran. Un album garde en couleur chaque image révélée.": "Logic grids to fill in, in 5 × 5 for beginners, 10 × 10, 15 × 15 and 20 × 20: the numbers of each row and column give the blocks of black cells, it's up to you to work out which to fill. Click to fill, right-click for a cross, drag for several cells; correct lines turn grey. 22 grids that reveal a colour picture, endless random grids in every size, a timer and saved times, full screen and a game that fits the screen. An album keeps every revealed picture in colour."
 }

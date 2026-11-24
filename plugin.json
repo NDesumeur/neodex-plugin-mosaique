@@ -1,16 +1,19 @@
 {
   "id": "neodex.mosaique",
   "name": "Mosaïque",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "author": "NDesumeur",
-  "description": "Grilles logiques à noircir, en 5 × 5 pour débuter, 10 × 10, 15 × 15 et 20 × 20 : les nombres de chaque ligne et colonne donnent les blocs de cases noires, à toi de déduire lesquelles noircir. Clic pour noircir, clic droit pour une croix, glisser pour plusieurs cases ; les lignes justes se grisent. 22 grilles qui révèlent une image en couleur, des grilles au hasard sans fin dans chaque taille, chronomètre et temps gardés, plein écran et jeu à la taille de l'écran.",
+  "description": "Grilles logiques à noircir, en 5 × 5 pour débuter, 10 × 10, 15 × 15 et 20 × 20 : les nombres de chaque ligne et colonne donnent les blocs de cases noires, à toi de déduire lesquelles noircir. Clic pour noircir, clic droit pour une croix, glisser pour plusieurs cases ; les lignes justes se grisent. 22 grilles qui révèlent une image en couleur, des grilles au hasard sans fin dans chaque taille, chronomètre et temps gardés, plein écran et jeu à la taille de l'écran. Un album garde en couleur chaque image révélée.",
   "icon": "icon.png",
   "entry": "index.js",
   "view": "mosaique",
   "neobase": ">=4.0.0",
   "type": "app",
   "category": "Jeux",
-  "compatibility": ["windows", "linux"],
+  "compatibility": [
+    "windows",
+    "linux"
+  ],
   "syncMode": "aucune",
   "syncInfo": "Rien n'est synchronisé : tes records restent sur cet appareil.",
   "mobile": false,

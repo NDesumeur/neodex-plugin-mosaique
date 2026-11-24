@@ -19,6 +19,11 @@ module.exports = async ({ pj, sleep }) => {
     if (await C('return mq.i + mq.mode;') !== '-1won') throw new Error('taille ' + n + ' : la grille au hasard devait être gagnée');
     if (n === 20) await shot('20-hasard');
   }
+  // l'album : les images révélées en couleur (une par taille au moins), les grilles au hasard réussies, un clic ouvre la grille
+  const al = await pj(`(() => { const a = document.getElementById('mqAlbum'); const b = [...a.querySelectorAll('button')]; return [b.filter(x => !x.classList.contains('lock') && x.tabIndex !== -1).length, b.filter(x => x.tabIndex === -1).length, b.filter(x => x.tabIndex !== -1).length].join(','); })()`);
+  const [open, rnd, all] = al.split(',').map(Number); if (open < 4 || rnd < 1 || all !== 22) throw new Error('album : ' + al + ' ' + JSON.stringify(await C('return T.solved();')) + ' ' + await pj(`document.querySelector('#mqAlbum button').className`));
+  await pj(`document.querySelector('#mqAlbum button.lock')?.click(), 0`); await sleep(200);
+  if (await C('return mq.mode;') !== 'play') throw new Error('album : le clic devait ouvrir la grille');
   await C(`T.size(${keep}); return 0;`);
   const errs = await pj(`window.__e.join(' | ')`); if (errs) throw new Error('erreur : ' + errs);
   await pj(`document.getElementById('gFs').click(), 0`); await sleep(700);

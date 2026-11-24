@@ -4,6 +4,10 @@ Des grilles logiques à noircir : les nombres au bord de chaque ligne et de chaq
 
 *English version: [README.en.md](README.en.md)*
 
+## Album (nouveau en 1.2.0)
+
+Un album à côté de la grille : chaque image révélée y est gardée en couleur, les grilles pas encore faites restent en point d’interrogation (sans dévoiler le dessin), et les 12 dernières mosaïques au hasard réussies y sont rangées aussi. Un clic sur une image ouvre sa grille.
+
 ## Les règles
 
 La grille fait 5 × 5, 10 × 10, 15 × 15 ou 20 × 20 cases, au choix dans la liste **Taille**. Les nombres à gauche d'une ligne, ou au-dessus d'une colonne, donnent dans l'ordre la longueur des blocs de cases noires : « 3 1 » veut dire un bloc de 3 cases noires, au moins une case blanche, puis un bloc d'une case. « 0 » veut dire que la ligne est vide.

@@ -4,6 +4,10 @@ Logic grids to fill in: the numbers on the edge of each row and each column tell
 
 *Version française : [README.md](README.md)*
 
+## Album (new in 1.2.0)
+
+An album next to the grid: every revealed picture is kept there in colour, grids not done yet stay as a question mark (without showing the drawing), and the last 12 random mosaics you solved are kept too. Click a picture to open its grid.
+
 ## Rules
 
 The grid is 5 × 5, 10 × 10, 15 × 15 or 20 × 20 cells, picked in the **Size** list. The numbers to the left of a row, or above a column, give in order the length of the blocks of black cells: "3 1" means a block of 3 black cells, at least one white cell, then a block of one cell. "0" means the line is empty.

@@ -8,6 +8,7 @@ const HTML = `<div class="appWrap wide">
       <div class="row"><button class="btn main" id="gNew">NOUVELLE PARTIE</button><button class="btn" id="gFs">PLEIN ÉCRAN</button></div>
       <label class="row">Taille <select id="mqSize" class="gSel"><option value="5">5 × 5 · débutant</option><option value="10">10 × 10</option><option value="15">15 × 15</option><option value="20">20 × 20</option></select></label>
       <div class="row"><select id="mqSel" class="f"></select></div>
+      <div class="sysCard"><b>ALBUM</b><div class="mqAlbum" id="mqAlbum"></div></div>
       <div class="hint">Les nombres donnent les blocs de cases noires de chaque ligne et colonne, dans l'ordre. « 3 1 » veut dire : un bloc de 3 cases noires, au moins une case blanche, puis un bloc de 1. Chaque nombre a sa petite étiquette.</div><div class="hint">La croix (clic droit) marque une case sûre d'être blanche. Une ligne juste se grise.</div>
     </div></div>
 </div>`;
@@ -20,6 +21,11 @@ const CSS = `.gMain{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
 .gStats b{text-align:right}
 .gameBox canvas{width:min(100%,max(320px,calc((100vh - 190px) * 4 / 3)));height:auto;aspect-ratio:4/3}
 .gameBox:fullscreen{padding:0}
+.mqAlbum{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:6px;max-height:300px;overflow:auto;margin-top:8px}
+.mqAlbum button{all:unset;cursor:var(--cp,pointer);display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;line-height:12px;text-align:center}
+.mqAlbum canvas{width:48px;height:48px;image-rendering:pixelated;background:#f3e8d0;border:2px solid #05010b}
+.mqAlbum button.lock canvas{background:#2a2040}
+.mqAlbum button:focus-visible canvas,.mqAlbum button:hover canvas{border-color:#ffd84a}
 .gameBox:fullscreen canvas{width:min(100vw,calc(100vh * 4 / 3))}`;
 /* ---------- l'habillage pixel art, dessiné à la main : police bitmap (accents compris), cadres, boutons, icônes ----------
    Tout est en pixels pleins, agrandis par 2 sans lissage : aucun dégradé, aucune ombre floue. */
@@ -396,7 +402,7 @@ const mqCell = (x, y) => { const {X, Y, C, N} = mq.L, cx = Math.floor((x - X) / 
 const mqSolved = () => mq.cells.every((r, y) => runs(r.map(v => v === 1)).join() === mq.rows[y].join()) && mq.cols.every((c, x) => runs(mq.cells.map(r => r[x] === 1)).join() === c.join());
 function mqSet(cx, cy) {
   if (mq.cells[cy][cx] === mq.drag.to) return; mq.cells[cy][cx] = mq.drag.to; beep(mq.drag.to === 1 ? 660 : mq.drag.to === 2 ? 330 : 220, .04, 'square', 0, .04);
-  if (mqSolved()) { mq.mode = 'won'; mq.time = Math.round((Date.now() - mq.t0) / 1000); mq.wonAt = mq.tick; if (mq.i < 0) { mq.img = mq.img.map((r, y) => [...r].map((c, x) => mq.cells[y][x] === 1 ? r.replace(/\./g, '') [0] : '.').join('')); mqs.rand++; } else { const k = mqKey(mq.N, mq.i), b = mqs.solved[k]; if (!b || mq.time < b) mqs.solved[k] = mq.time; } mqs.games++; saveGames(); mqInfo(); [523, 659, 784, 1047].forEach((f, k) => setTimeout(() => beep(f, .15, 'triangle'), k * 110)); }
+  if (mqSolved()) { mq.mode = 'won'; mq.time = Math.round((Date.now() - mq.t0) / 1000); mq.wonAt = mq.tick; if (mq.i < 0) { mq.img = mq.img.map((r, y) => [...r].map((c, x) => mq.cells[y][x] === 1 ? r.replace(/\./g, '') [0] : '.').join('')); mqs.rand++; mqs.gal = [mq.img, ...(mqs.gal || [])].slice(0, 12); } else { const k = mqKey(mq.N, mq.i), b = mqs.solved[k]; if (!b || mq.time < b) mqs.solved[k] = mq.time; } mqs.games++; saveGames(); mqInfo(); [523, 659, 784, 1047].forEach((f, k) => setTimeout(() => beep(f, .15, 'triangle'), k * 110)); }
 }
 const mqBg = () => mqBgs[W] ??= cnv(W, H, b => {  // un établi de bois et une feuille quadrillée
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const n = (x * 3 + Math.floor(y / 6) * 17) % 23; px(b, y % 6 === 0 ? '#3e2016' : n < 2 ? '#5a3420' : '#6a3e26', x, y); }
@@ -440,8 +446,21 @@ cv.onpointerleave = () => { if (mq) mq.hover = null; };
 function mqInfo() {
   const N = mq.N, set = MQ_SETS[N], total = Object.values(MQ_SETS).reduce((a, s) => a + s.length, 0), n = Object.keys(mqs.solved).length, t = mqs.solved[mqKey(N, mq.i)];
   showStats([['Grilles résolues', n + ' / ' + total], ['Au hasard', mqs.rand], ['Temps sur celle-ci', t ? clock(t) : '-'], ['Parties gagnées', mqs.games]]);
+  mqAlbum();
   const rnd = el('option', '', 'Au hasard (nouvelle à chaque fois)'); rnd.value = -1;
   $('mqSel').replaceChildren(rnd, ...set.map(([name], i) => { const o = el('option', '', 'Grille ' + (i + 1) + (mqs.solved[mqKey(N, i)] ? ' · ' + name + ' ✓' : '')); o.value = i; return o; })); $('mqSel').value = mq.i; $('mqSize').value = N;
+}
+function mqThumb(img, lock) {
+  const N = img.length, c = cnv(N, N, b => { if (lock) { const q = ['.###.', '#...#', '...#.', '..#..', '.....', '..#..'], k = Math.max(1, Math.floor(N / 8)), o = Math.floor((N - 5 * k) / 2); q.forEach((r, y) => [...r].forEach((ch, x) => { if (ch === '#') px(b, '#8a7aaa', o + x * k, o + y * k, k, k); })); return; }
+    img.forEach((r, y) => [...r].forEach((ch, x) => { if (MQ_PAL[ch]) px(b, MQ_PAL[ch], x, y); })); });
+  return c;
+}
+function mqAlbum() {
+  const items = [];
+  for (const N of [5, 10, 15, 20]) MQ_SETS[N].forEach(([name, img], i) => { const ok = mqs.solved[mqKey(N, i)] != null, b = el('button', ok ? '' : 'lock'); b.title = ok ? name + ' · ' + N + ' × ' + N : N + ' × ' + N + ' · grille ' + (i + 1);
+    b.append(mqThumb(img, !ok), el('span', '', N + '×' + N)); b.onclick = () => { mqs.size = N; mqNew(i, N); }; items.push(b); });
+  for (const img of mqs.gal || []) { const b = el('button'); b.title = 'Au hasard · ' + img.length + ' × ' + img.length; b.append(mqThumb(img), el('span', '', 'hasard')); b.tabIndex = -1; b.style.cursor = 'default'; items.push(b); }
+  $('mqAlbum').replaceChildren(...items);
 }
 $('mqSel').onchange = () => { mqNew(+$('mqSel').value); $('mqSel').blur(); };
 $('gNew').onclick = () => { mqNew(mq.i); $('gNew').blur(); };
@@ -462,7 +481,7 @@ function mqCheck() {  // vérification : chaque grille a la bonne taille, et pou
   return bad.length ? [...new Set(bad)].join(', ') : 'ok';
 }
 console.assert(mqCheck() === 'ok', 'mosaïque', mqCheck());
-cv.__mq = {st: () => mq, check: mqCheck, size: n => { $('mqSize').value = n; $('mqSize').dispatchEvent(new Event('change')); }, solve: () => { mq.cells = mq.sol.map(r => r.map(v => v ? 1 : 0)); const [y, x] = [0, mq.sol[0].findIndex(Boolean)]; mq.cells[y][x] = 0; mq.drag = {to: 1}; mqSet(x, y); mq.drag = null; }};
+cv.__mq = {st: () => mq, check: mqCheck, solved: () => mqs.solved, size: n => { $('mqSize').value = n; $('mqSize').dispatchEvent(new Event('change')); }, solve: () => { mq.cells = mq.sol.map(r => r.map(v => v ? 1 : 0)); const [y, x] = [0, mq.sol[0].findIndex(Boolean)]; mq.cells[y][x] = 0; mq.drag = {to: 1}; mqSet(x, y); mq.drag = null; }};
 { const rs = Array.from({length: 20}, mqRandom); console.assert(MQ_PUZ.every(([, r]) => r.length === 10 && r.every(l => l.length === 10)) && rs.every(r => r.length === 10 && r.every(l => l.length === 10 && l.includes(l.replace(/\./g, '')[0]) && l === [...l].reverse().join(''))) && runs([1, 1, 0, 1]).join() === '2,1' && runs([0, 0]).join() === '0', 'mosaïque'); }
 ctx.onOpen(() => { if (!mq) mqNew(); gameLoop(mq, 'mosaique', () => {}, mqDraw); mqInfo(); });
 
