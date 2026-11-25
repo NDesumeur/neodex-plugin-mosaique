@@ -306,6 +306,9 @@ export default async function (ctx) {
   const saveGames = () => { clearTimeout(gamesTimer); gamesTimer = setTimeout(() => { gamesTimer = null; folder.write('games', games).catch(() => {}); }, 500); };
   const best = (k, v) => { const b = games.best[k]; if (b == null || v > b) { games.best[k] = v; saveGames(); return true; } return false; };
   const gstore = (k, init) => (games[k] ??= init);
+  // les trophées de NeoDex (3.4.8 et plus) : succès et records déclarés dans plugin.json ; sur un NeoDex plus ancien, rien ne se passe
+  const trophy = id => { ctx.games?.unlock(id).catch(() => {}); };
+  const trophyRecord = (id, v) => { if (v != null && Number.isFinite(+v)) ctx.games?.record(id, +v).catch(() => {}); };
 function gameLoop(st, appKey, update, draw) {
   cancelAnimationFrame(st.raf);
   const STEP = 1000 / 60; let acc = 0, last = performance.now();
@@ -444,6 +447,7 @@ cv.onpointermove = e => { if (!mq) return; const c = mqCell(...cpos(e)); mq.hove
 cv.onpointerup = () => { if (mq) mq.drag = null; };
 cv.onpointerleave = () => { if (mq) mq.hover = null; };
 function mqInfo() {
+  setTimeout(mqTrophies);
   const N = mq.N, set = MQ_SETS[N], total = Object.values(MQ_SETS).reduce((a, s) => a + s.length, 0), n = Object.keys(mqs.solved).length, t = mqs.solved[mqKey(N, mq.i)];
   showStats([['Grilles résolues', n + ' / ' + total], ['Au hasard', mqs.rand], ['Temps sur celle-ci', t ? clock(t) : '-'], ['Parties gagnées', mqs.games]]);
   mqAlbum();
@@ -483,6 +487,13 @@ function mqCheck() {  // vérification : chaque grille a la bonne taille, et pou
 console.assert(mqCheck() === 'ok', 'mosaïque', mqCheck());
 cv.__mq = {st: () => mq, check: mqCheck, solved: () => mqs.solved, size: n => { $('mqSize').value = n; $('mqSize').dispatchEvent(new Event('change')); }, solve: () => { mq.cells = mq.sol.map(r => r.map(v => v ? 1 : 0)); const [y, x] = [0, mq.sol[0].findIndex(Boolean)]; mq.cells[y][x] = 0; mq.drag = {to: 1}; mqSet(x, y); mq.drag = null; }};
 { const rs = Array.from({length: 20}, mqRandom); console.assert(MQ_PUZ.every(([, r]) => r.length === 10 && r.every(l => l.length === 10)) && rs.every(r => r.length === 10 && r.every(l => l.length === 10 && l.includes(l.replace(/\./g, '')[0]) && l === [...l].reverse().join(''))) && runs([1, 1, 0, 1]).join() === '2,1' && runs([0, 0]).join() === '0', 'mosaïque'); }
+// les trophées, tirés des statistiques et des records gardés (aussi à l'ouverture : ce qui a été fait avant compte)
+function mqTrophies() {
+  const keys = Object.keys(mqs.solved), n = keys.length, total = Object.values(MQ_SETS).reduce((a, s) => a + s.length, 0), sig = [n, mqs.rand].join(); if (sig === mqTrophies.sig) return; mqTrophies.sig = sig;
+  trophyRecord('resolues', n || null);
+  if (n >= 1 || mqs.rand >= 1) trophy('premier'); if (keys.some(k => k.startsWith('15:'))) trophy('n15'); if (keys.some(k => k.startsWith('20:'))) trophy('n20');
+  if (n >= 25) trophy('vingt5'); if (n >= total) trophy('toutes'); if (mqs.rand >= 10) trophy('hasard');
+}
 ctx.onOpen(() => { if (!mq) mqNew(); gameLoop(mq, 'mosaique', () => {}, mqDraw); mqInfo(); });
 
 }

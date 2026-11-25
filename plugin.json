@@ -1,7 +1,7 @@
 {
   "id": "neodex.mosaique",
   "name": "Mosaïque",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "author": "NDesumeur",
   "description": "Grilles logiques à noircir, en 5 × 5 pour débuter, 10 × 10, 15 × 15 et 20 × 20 : les nombres de chaque ligne et colonne donnent les blocs de cases noires, à toi de déduire lesquelles noircir. Clic pour noircir, clic droit pour une croix, glisser pour plusieurs cases ; les lignes justes se grisent. 22 grilles qui révèlent une image en couleur, des grilles au hasard sans fin dans chaque taille, chronomètre et temps gardés, plein écran et jeu à la taille de l'écran. Un album garde en couleur chaque image révélée.",
   "icon": "icon.png",
@@ -22,5 +22,46 @@
   "sdk": "2.1.0",
   "permissions": [
     "storage"
+  ],
+  "succes": [
+    {
+      "id": "premier",
+      "nom": "Premier tableau",
+      "texte": "Résoudre une première grille"
+    },
+    {
+      "id": "n15",
+      "nom": "Grande toile",
+      "texte": "Résoudre une grille 15 × 15"
+    },
+    {
+      "id": "n20",
+      "nom": "Fresque",
+      "texte": "Résoudre une grille 20 × 20"
+    },
+    {
+      "id": "vingt5",
+      "nom": "Galerie",
+      "texte": "Résoudre 25 grilles différentes"
+    },
+    {
+      "id": "toutes",
+      "nom": "Le musée complet",
+      "texte": "Résoudre toutes les grilles",
+      "cache": true
+    },
+    {
+      "id": "hasard",
+      "nom": "Imprévu",
+      "texte": "Résoudre 10 grilles au hasard"
+    }
+  ],
+  "records": [
+    {
+      "id": "resolues",
+      "nom": "Grilles résolues",
+      "sens": "haut",
+      "format": "nombre"
+    }
   ]
 }
